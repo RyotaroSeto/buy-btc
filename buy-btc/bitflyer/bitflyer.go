@@ -8,22 +8,6 @@ import (
 const baseURL = "https://api.bitflyer.com"
 const productCodeKey = "product_code"
 
-func GetTicker(code ProductCode) (*Ticker, error) {
-	url := baseURL + "/v1/ticker"
-	res, err := utils.DoHttpRequest("GET", url, nil,
-		map[string]string{productCodeKey: code.String()}, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var ticker Ticker
-	err = json.Unmarshal(res, &ticker)
-	if err != nil {
-		return nil, err
-	}
-	return &ticker, nil
-}
-
 type Ticker struct {
 	ProductCode     string  `json:"product_code"`
 	State           string  `json:"state"`
@@ -40,4 +24,20 @@ type Ticker struct {
 	Ltp             float64 `json:"ltp"`
 	Volume          float64 `json:"volume"`
 	VolumeByProduct float64 `json:"volume_by_product"`
+}
+
+func GetTicker(code ProductCode) (*Ticker, error) {
+	url := baseURL + "/v1/ticker"
+	res, err := utils.BitFlyHttpRequest("GET", url, nil,
+		map[string]string{productCodeKey: code.String()}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var ticker Ticker
+	err = json.Unmarshal(res, &ticker)
+	if err != nil {
+		return nil, err
+	}
+	return &ticker, nil
 }

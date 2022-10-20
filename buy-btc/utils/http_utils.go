@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func DoHttpRequest(method, url string, header, query map[string]string, data []byte) ([]byte, error) {
+func BitFlyHttpRequest(method, url string, header, query map[string]string, data []byte) ([]byte, error) {
 	if method != "GET" && method != "POST" {
 		return nil, errors.New("methods neither GET nor POST")
 	}
