@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"time"
 )
@@ -31,6 +32,21 @@ type Ticker struct {
 	VolumeByProduct float64 `json:"volume_by_product"`
 }
 
+type Order struct {
+	ProductCode    string  `json:"product_code"`
+	ChildOrderType string  `json:"child_order_type"`
+	Side           string  `json:"side"`
+	Price          float64 `json:"price"`
+	Size           float64 `json:"size"`
+	MinuteToExpire int     `json:"minute_to_expire"`
+	TimeInForce    string  `json:"time_in_force"`
+}
+
+type OrderRes struct {
+	ChildOrderAcceptanceId string `json:"child_order_acceptance_id"`
+}
+
+// header作成
 func getHeader(method, path, apikey, apisecret string, body []byte) map[string]string {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 
@@ -47,6 +63,7 @@ func getHeader(method, path, apikey, apisecret string, body []byte) map[string]s
 	}
 }
 
+// 板取得
 func GetTicker(code ProductCode) (*Ticker, error) {
 	url := baseURL + "/v1/ticker"
 	res, err := utils.BitFlyHttpRequest("GET", url, nil,
@@ -61,4 +78,33 @@ func GetTicker(code ProductCode) (*Ticker, error) {
 		return nil, err
 	}
 	return &ticker, nil
+}
+
+// 注文
+func PlaceOrder(order *Order, apikey, apisecret string) (*OrderRes, error) {
+	method := "POST"
+	path := "/v1/me/sendchildorder"
+	url := baseURL + path
+	data, err := json.Marshal(order)
+	if err != nil {
+		return nil, err
+	}
+	header := getHeader(method, path, apikey, apisecret, data)
+
+	res, err := utils.BitFlyHttpRequest(method, url, header, map[string]string{}, data)
+	if err != nil {
+		return nil, err
+	}
+
+	var orderRes OrderRes
+	err = json.Unmarshal(res, &orderRes)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(orderRes.ChildOrderAcceptanceId) == 0 {
+		return nil, errors.New(string(res))
+	}
+
+	return &orderRes, nil
 }
