@@ -14,6 +14,11 @@ import (
 const baseURL = "https://api.bitflyer.com"
 const productCodeKey = "product_code"
 
+type APIClient struct {
+	apiKey    string
+	apiSecret string
+}
+
 type Ticker struct {
 	ProductCode     string  `json:"product_code"`
 	State           string  `json:"state"`
@@ -46,17 +51,25 @@ type OrderRes struct {
 	ChildOrderAcceptanceId string `json:"child_order_acceptance_id"`
 }
 
+func NewAPIClient(apiKey, apiSecret string) *APIClient {
+	return &APIClient{
+		apiKey,
+		apiSecret,
+	}
+
+}
+
 // header作成
-func getHeader(method, path, apikey, apisecret string, body []byte) map[string]string {
+func (client *APIClient) getHeader(method, path string, body []byte) map[string]string {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 
 	text := timestamp + method + path + string(body)
-	mac := hmac.New(sha256.New, []byte(apisecret))
+	mac := hmac.New(sha256.New, []byte(client.apiSecret))
 	mac.Write([]byte(text))
 	sign := hex.EncodeToString(mac.Sum(nil))
 
 	return map[string]string{
-		"ACCESS-KEY":       apikey,
+		"ACCESS-KEY":       client.apiKey,
 		"ACCESS-TIMESTAMP": timestamp,
 		"ACCESS-SIGN":      sign,
 		"Content-Type":     "application/json",
@@ -81,7 +94,7 @@ func GetTicker(code ProductCode) (*Ticker, error) {
 }
 
 // 注文
-func PlaceOrder(order *Order, apikey, apisecret string) (*OrderRes, error) {
+func (client *APIClient) PlaceOrder(order *Order) (*OrderRes, error) {
 	method := "POST"
 	path := "/v1/me/sendchildorder"
 	url := baseURL + path
@@ -89,7 +102,7 @@ func PlaceOrder(order *Order, apikey, apisecret string) (*OrderRes, error) {
 	if err != nil {
 		return nil, err
 	}
-	header := getHeader(method, path, apikey, apisecret, data)
+	header := client.getHeader(method, path, data)
 
 	res, err := utils.BitFlyHttpRequest(method, url, header, map[string]string{}, data)
 	if err != nil {

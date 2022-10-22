@@ -21,7 +21,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	if err != nil {
 		return getErrorResponse(err.Error()), nil
 	}
-	apisecret, err := getParameter("buy-btc-apisecret")
+	apiSecret, err := getParameter("buy-btc-apisecret")
 	if err != nil {
 		return getErrorResponse(err.Error()), nil
 	}
@@ -45,7 +45,8 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		TimeInForce:    bitflyer.Gtc.String(),
 	}
 
-	orderRes, err := bitflyer.PlaceOrder(&order, apiKey, apisecret)
+	client := bitflyer.NewAPIClient(apiKey, apiSecret)
+	orderRes, err := client.PlaceOrder(&order)
 	if err != nil {
 		log.Println("------------")
 		log.Println(err)
