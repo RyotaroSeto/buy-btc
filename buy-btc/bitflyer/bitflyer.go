@@ -2,7 +2,12 @@ package bitflyer
 
 import (
 	"buy-btc/utils"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"strconv"
+	"time"
 )
 
 const baseURL = "https://api.bitflyer.com"
@@ -24,6 +29,22 @@ type Ticker struct {
 	Ltp             float64 `json:"ltp"`
 	Volume          float64 `json:"volume"`
 	VolumeByProduct float64 `json:"volume_by_product"`
+}
+
+func getHeader(method, path, apikey, apisecret string, body []byte) map[string]string {
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	text := timestamp + method + path + string(body)
+	mac := hmac.New(sha256.New, []byte(apisecret))
+	mac.Write([]byte(text))
+	sign := hex.EncodeToString(mac.Sum(nil))
+
+	return map[string]string{
+		"ACCESS-KEY":       apikey,
+		"ACCESS-TIMESTAMP": timestamp,
+		"ACCESS-SIGN":      sign,
+		"Content-Type":     "application/json",
+	}
 }
 
 func GetTicker(code ProductCode) (*Ticker, error) {
