@@ -17,6 +17,22 @@ import (
 // 価格->現在価格の95%
 // 数量->0.001BTC
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	tickerChan := make(chan *bitflyer.Ticker)
+	errChan := make(chan error)
+	defer close(tickerChan)
+	defer close(errChan)
+
+	log.Println("価格取得")
+	go bitflyer.GetTicker(tickerChan, errChan, bitflyer.Btcjpy)
+	ticker := <-tickerChan
+	err := <-errChan
+	if err != nil {
+		return getErrorResponse(err.Error()), nil
+	}
+	// 購入価格取得小数点以下切り捨て
+	buyPrice := RoundDecimal(ticker.Ltp * 0.95)
+
+	log.Println("System Maneger key取得")
 	apiKey, err := getParameter("buy-btc-apikey")
 	if err != nil {
 		return getErrorResponse(err.Error()), nil
@@ -25,15 +41,6 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	if err != nil {
 		return getErrorResponse(err.Error()), nil
 	}
-
-	// 現在価格取得
-	ticker, err := bitflyer.GetTicker(bitflyer.Btcjpy)
-	if err != nil {
-		return getErrorResponse(err.Error()), err
-	}
-
-	// 購入価格取得小数点以下切り捨て
-	buyPrice := RoundDecimal(ticker.Ltp * 0.95)
 
 	order := bitflyer.Order{
 		ProductCode:    bitflyer.Btcjpy.String(),
@@ -46,11 +53,10 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	}
 
 	client := bitflyer.NewAPIClient(apiKey, apiSecret)
+	log.Println("注文")
 	orderRes, err := client.PlaceOrder(&order)
 	if err != nil {
-		log.Println("------------")
 		log.Println(err)
-		log.Println("------------")
 		return getErrorResponse(err.Error()), err
 	}
 

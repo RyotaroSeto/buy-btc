@@ -77,20 +77,25 @@ func (client *APIClient) getHeader(method, path string, body []byte) map[string]
 }
 
 // 板取得
-func GetTicker(code ProductCode) (*Ticker, error) {
+func GetTicker(ch chan *Ticker, errCh chan error, code ProductCode) {
 	url := baseURL + "/v1/ticker"
 	res, err := utils.BitFlyHttpRequest("GET", url, nil,
 		map[string]string{productCodeKey: code.String()}, nil)
 	if err != nil {
-		return nil, err
+		errCh <- err
+		ch <- nil
+		return
 	}
 
 	var ticker Ticker
 	err = json.Unmarshal(res, &ticker)
 	if err != nil {
-		return nil, err
+		errCh <- err
+		ch <- nil
+		return
 	}
-	return &ticker, nil
+	ch <- &ticker
+	errCh <- nil
 }
 
 // 注文
