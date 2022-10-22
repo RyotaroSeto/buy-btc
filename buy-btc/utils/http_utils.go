@@ -7,8 +7,13 @@ import (
 	"net/http"
 )
 
+const (
+	GET  string = "GET"
+	POST string = "POST"
+)
+
 func BitFlyHttpRequest(method, url string, header, query map[string]string, data []byte) ([]byte, error) {
-	if method != "GET" && method != "POST" {
+	if method != GET && method != POST {
 		return nil, errors.New("methods neither GET nor POST")
 	}
 
